@@ -1,67 +1,133 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
+}
+
+class Product {
+  final String name;
+  final double price;
+  int quantity = 0;
+
+  Product({required this.name, required this.price});
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text('Product List'),
+        ),
+        body: ProductList(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  final String title;
-
+class ProductList extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ProductListState createState() => _ProductListState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
+class _ProductListState extends State<ProductList> {
+  List<Product> products = [
+    Product(name: 'Product 1', price: 10.0),
+    Product(name: 'Product 2', price: 15.0),
+    Product(name: 'Product 3', price: 20.0),
+    Product(name: 'Product 4', price: 25.0),
+    Product(name: 'Product 5', price: 30.0),
+    Product(name: 'Product 6', price: 35.0),
+    Product(name: 'Product 7', price: 39.0),
+    Product(name: 'Product 8', price: 45.0),
+    Product(name: 'Product 9', price: 45.0),
+    Product(name: 'Product 10', price: 56.0),
+    Product(name: 'Product 11', price: 72.0),
+    Product(name: 'Product 12', price: 22.0),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      body: ListView.builder(
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final product = products[index];
+          return ListTile(
+            title: Text(product.name),
+            subtitle: Text('\$${product.price.toStringAsFixed(2)}'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${product.quantity}'),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () {
+                    setState(() {
+                      product.quantity++;
+                      if (product.quantity == 5) {
+                        _showCongratulationsDialog(product.name);
+                      }
+                    });
+                  },
+                ),
+              ],
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => CartPage(products: products),
+            ),
+          );
+        },
+        child: Icon(Icons.shopping_cart),
+      ),
+    );
+  }
+
+  void _showCongratulationsDialog(String productName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Congratulations!'),
+          content: Text('You\'ve bought 5 $productName!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class CartPage extends StatelessWidget {
+  final List<Product> products;
+
+  CartPage({required this.products});
+
+  @override
+  Widget build(BuildContext context) {
+    int totalQuantity = products.fold(0, (sum, product) => sum + product.quantity);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Cart'),
+      ),
+      body: Center(
+        child: Text('Total Products: $totalQuantity'),
       ),
     );
   }
