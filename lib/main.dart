@@ -4,135 +4,154 @@ void main() {
   runApp(MyApp());
 }
 
+class Item {
+  String name;
+  String color;
+  String size;
+  double price;
+  int quantity;
+
+  Item({
+    required this.name,
+    required this.color,
+    required this.size,
+    required this.price,
+    this.quantity = 0,
+  });
+}
+
+class CartItem {
+  Item item;
+  int quantity;
+
+  CartItem(this.item, this.quantity);
+}
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: OrientationBuilder(
-        builder: (context, orientation) {
-          return orientation == Orientation.landscape
-              ? LandscapeProfileScreen()
-              : PortraitProfileScreen();
-        },
-      ),
+      debugShowCheckedModeBanner: false,
+      home: MyHomePage(),
     );
   }
 }
 
-class PortraitProfileScreen extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  List<Item> items = [
+    Item(name: 'Shirt', color: 'Red', size: 'M', price: 20.0),
+    Item(name: 'Pant', color: 'Blue', size: 'L', price: 25.0),
+    Item(name: 'Lungi', color: 'Green', size: 'S', price: 15.0),
+  ];
+
+  List<CartItem> cart = [];
+
+  Map<Item, int> productCount = {};
+
+  void addToCart(Item item) {
+    setState(() {
+      int index = cart.indexWhere((cartItem) => cartItem.item == item);
+      if (index != -1) {
+        cart[index].quantity++;
+      } else {
+        cart.add(CartItem(item, 1));
+      }
+      updateProductCount();
+    });
+  }
+
+  void removeFromCart(Item item) {
+    setState(() {
+      int index = cart.indexWhere((cartItem) => cartItem.item == item);
+      if (index != -1) {
+        if (cart[index].quantity > 1) {
+          cart[index].quantity--;
+        } else {
+          cart.removeAt(index);
+        }
+      }
+      updateProductCount();
+    });
+  }
+
+  void updateProductCount() {
+    productCount.clear();
+    for (CartItem cartItem in cart) {
+      productCount[cartItem.item] = cartItem.quantity;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        title: Text('My Bag'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            CircleAvatar(
-              radius: 80.0,
-              backgroundImage: NetworkImage('https://shorturl.at/oqMY7'),
-            ),
-            SizedBox(height: 16.0),
-            RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 24.0,
-                  color: Colors.black,
+      body: ListView.builder(
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          Item item = items[index];
+          int quantityInCart = productCount[item] ?? 0;
+          return ListTile(
+            leading: Image.asset('assets/${item.name.toLowerCase()}.jpg'),
+            title: Text(item.name),
+            subtitle: Text('Color: ${item.color}, Size: ${item.size}, Price: \$${item.price.toStringAsFixed(2)}'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.remove),
+                  onPressed: () => removeFromCart(item),
                 ),
-                children: [
-                  TextSpan(
-                    text: 'John Doe\n',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextSpan(
-                    text: 'Designer',
-                    style: TextStyle(fontSize: 18.0, color: Colors.grey),
-                  ),
-                ],
-              ),
+                Text(quantityInCart.toString()),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () => addToCart(item),
+                ),
+              ],
             ),
-            SizedBox(height: 16.0),
-            Text(
-              'Some details about John Doe',
-              style: TextStyle(fontSize: 16.0),
-            ),
-            SizedBox(height: 16.0),
-            Expanded(
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  children: List.generate(
-                    6,
-                        (index) => Image.network(
-                      'https://shorturl.at/oqMY7',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
-            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          final snackBar = SnackBar(
+            content: Text('Congratulations! Your total amount is \$${calculateTotalPrice().toStringAsFixed(2)}'),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        },
+        label: Text('CHECK OUT'),
+        icon: Icon(Icons.shopping_cart),
+      ),
+      // Show the total cost here
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Total: \$${calculateTotalPrice().toStringAsFixed(2)}', style: TextStyle(fontSize: 20)),
           ],
         ),
       ),
     );
   }
-}
 
-class LandscapeProfileScreen extends StatelessWidget {
+  double calculateTotalPrice() {
+    double total = 0;
+    for (CartItem cartItem in cart) {
+      total += cartItem.item.price * cartItem.quantity;
+    }
+    return total;
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Profile'),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              CircleAvatar(
-                radius: 80.0,
-                backgroundImage: NetworkImage('https://shorturl.at/oqMY7'),
-              ),
-              SizedBox(height: 16.0),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 24.0,
-                    color: Colors.black,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: 'John Doe\n',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(
-                      text: 'Designer',
-                      style: TextStyle(fontSize: 18.0, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.0),
-              Text(
-                'Some details about John Doe',
-                style: TextStyle(fontSize: 16.0),
-              ),
-              SizedBox(height: 16.0),
-              GridView.count(
-                crossAxisCount: 3,
-                children: List.generate(
-                  6,
-                      (index) => Image.network(
-                    'https://shorturl.at/oqMY7', // Replace with the actual image URL
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    updateProductCount();
   }
 }
