@@ -5,153 +5,151 @@ void main() {
 }
 
 class Item {
-  String name;
-  String color;
-  String size;
-  double price;
-  int quantity;
+  String title;
+  String description;
 
-  Item({
-    required this.name,
-    required this.color,
-    required this.size,
-    required this.price,
-    this.quantity = 0,
-  });
-}
-
-class CartItem {
-  Item item;
-  int quantity;
-
-  CartItem(this.item, this.quantity);
+  Item({required this.title, required this.description});
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MyHomePage(),
+      title: 'Editable List',
+      home: EditableListScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class EditableListScreen extends StatefulWidget {
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _EditableListScreenState createState() => _EditableListScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _EditableListScreenState extends State<EditableListScreen> {
   List<Item> items = [
-    Item(name: 'Shirt', color: 'Red', size: 'M', price: 20.0),
-    Item(name: 'Pant', color: 'Blue', size: 'L', price: 25.0),
-    Item(name: 'Lungi', color: 'Green', size: 'S', price: 15.0),
+    Item(title: "Item 1", description: "Description 1"),
+    Item(title: "Item 2", description: "Description 2"),
   ];
 
-  List<CartItem> cart = [];
+  void _showEditDialog(Item item) {
+    TextEditingController titleController = TextEditingController(text: item.title);
+    TextEditingController descriptionController = TextEditingController(text: item.description);
 
-  Map<Item, int> productCount = {};
-
-  void addToCart(Item item) {
-    setState(() {
-      int index = cart.indexWhere((cartItem) => cartItem.item == item);
-      if (index != -1) {
-        cart[index].quantity++;
-      } else {
-        cart.add(CartItem(item, 1));
-      }
-      updateProductCount();
-    });
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit Item'),
+          content: Column(
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  item.title = titleController.text;
+                  item.description = descriptionController.text;
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  void removeFromCart(Item item) {
-    setState(() {
-      int index = cart.indexWhere((cartItem) => cartItem.item == item);
-      if (index != -1) {
-        if (cart[index].quantity > 1) {
-          cart[index].quantity--;
-        } else {
-          cart.removeAt(index);
-        }
-      }
-      updateProductCount();
-    });
-  }
-
-  void updateProductCount() {
-    productCount.clear();
-    for (CartItem cartItem in cart) {
-      productCount[cartItem.item] = cartItem.quantity;
-    }
+  void _showDeleteDialog(Item item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Item'),
+          content: Text('Are you sure you want to delete this item?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  items.remove(item);
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Delete'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Bag'),
+        title: Text('Editable List'),
       ),
       body: ListView.builder(
         itemCount: items.length,
         itemBuilder: (context, index) {
-          Item item = items[index];
-          int quantityInCart = productCount[item] ?? 0;
           return ListTile(
-            leading: Image.asset('assets/${item.name.toLowerCase()}.jpg'),
-            title: Text(item.name),
-            subtitle: Text('Color: ${item.color}, Size: ${item.size}, Price: \$${item.price.toStringAsFixed(2)}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.remove),
-                  onPressed: () => removeFromCart(item),
-                ),
-                Text(quantityInCart.toString()),
-                IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: () => addToCart(item),
-                ),
-              ],
-            ),
+            title: Text(items[index].title),
+            subtitle: Text(items[index].description),
+            onLongPress: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text('Options'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _showEditDialog(items[index]);
+                        },
+                        child: Text('Edit'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _showDeleteDialog(items[index]);
+                        },
+                        child: Text('Delete'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
-          final snackBar = SnackBar(
-            content: Text('Congratulations! Your total amount is \$${calculateTotalPrice().toStringAsFixed(2)}'),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          // Add new item
+          Item newItem = Item(title: " New Item", description: "Description");
+          setState(() {
+            items.add(newItem);
+          });
         },
-        label: Text('CHECK OUT'),
-        icon: Icon(Icons.shopping_cart),
-      ),
-      // Show the total cost here
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Total: \$${calculateTotalPrice().toStringAsFixed(2)}', style: TextStyle(fontSize: 20)),
-          ],
-        ),
+        child: Icon(Icons.add),
       ),
     );
-  }
-
-  double calculateTotalPrice() {
-    double total = 0;
-    for (CartItem cartItem in cart) {
-      total += cartItem.item.price * cartItem.quantity;
-    }
-    return total;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    updateProductCount();
   }
 }
