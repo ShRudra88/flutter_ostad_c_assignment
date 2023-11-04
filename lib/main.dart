@@ -1,155 +1,116 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-void main() {
-  runApp(MyApp());
-}
-
-class Item {
-  String title;
-  String description;
-
-  Item({required this.title, required this.description});
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Editable List',
-      home: EditableListScreen(),
+      title: 'Photo Gallery App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: PhotoListScreen(),
     );
   }
 }
 
-class EditableListScreen extends StatefulWidget {
+class PhotoListScreen extends StatefulWidget {
   @override
-  _EditableListScreenState createState() => _EditableListScreenState();
+  _PhotoListScreenState createState() => _PhotoListScreenState();
 }
 
-class _EditableListScreenState extends State<EditableListScreen> {
-  List<Item> items = [
-    Item(title: "Item 1", description: "Description 1"),
-    Item(title: "Item 2", description: "Description 2"),
-  ];
+class _PhotoListScreenState extends State<PhotoListScreen> {
+  List<dynamic> _photos = [];
+  bool _loading = true;
 
-  void _showEditDialog(Item item) {
-    TextEditingController titleController = TextEditingController(text: item.title);
-    TextEditingController descriptionController = TextEditingController(text: item.description);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Edit Item'),
-          content: Column(
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(labelText: 'Title'),
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(labelText: 'Description'),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  item.title = titleController.text;
-                  item.description = descriptionController.text;
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _fetchPhotos();
   }
 
-  void _showDeleteDialog(Item item) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Delete Item'),
-          content: Text('Are you sure you want to delete this item?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  items.remove(item);
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('Delete'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _fetchPhotos() async {
+    try {
+      final response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/photos'));
+      if (response.statusCode == 200) {
+        setState(() {
+          _photos = json.decode(response.body);
+          _loading = false;
+        });
+      } else {
+        throw Exception('Failed to load photos');
+      }
+    } catch (error) {
+      print('Error: $error');
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Editable List'),
+        title: Text('Photo Gallery App'),
       ),
-      body: ListView.builder(
-        itemCount: items.length,
+      body: _loading
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        itemCount: _photos.length,
         itemBuilder: (context, index) {
           return ListTile(
-            title: Text(items[index].title),
-            subtitle: Text(items[index].description),
-            onLongPress: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text('Options'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          _showEditDialog(items[index]);
-                        },
-                        child: Text('Edit'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          _showDeleteDialog(items[index]);
-                        },
-                        child: Text('Delete'),
-                      ),
-                    ],
-                  );
-                },
+            title: Text(_photos[index]['title']),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PhotoDetailScreen(
+                    photoId: _photos[index]['id'],
+                    photoUrl: _photos[index]['url'],
+                    photoTitle: _photos[index]['title'],
+                  ),
+                ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Add new item
-          Item newItem = Item(title: " New Item", description: "Description");
-          setState(() {
-            items.add(newItem);
-          });
-        },
-        child: Icon(Icons.add),
-      ),
     );
   }
+}
+
+class PhotoDetailScreen extends StatelessWidget {
+  final int photoId;
+  final String photoUrl;
+  final String photoTitle;
+
+  PhotoDetailScreen({
+  required this.photoId,
+  required this.photoUrl,
+  required this.photoTitle,
+});
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('Photo Details'),
+    ),
+    body: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.network(photoUrl),
+        SizedBox(height: 20),
+        Text('ID: $photoId', style: TextStyle(fontSize: 18)),
+        SizedBox(height: 10),
+        Text('Title: $photoTitle', style: TextStyle(fontSize: 18)),
+      ],
+    ),
+  );
+}
 }
